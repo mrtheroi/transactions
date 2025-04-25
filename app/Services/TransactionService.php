@@ -15,9 +15,13 @@ class TransactionService
      */
     public function save(array $data, ?int $id = null): ?Transaction
     {
+        if (isset($data['transaction_date'])) {
+            // Asegurarnos de que sea el inicio del día para ignorar la parte de la hora
+            $data['transaction_date'] = Carbon::parse($data['transaction_date'])->startOfDay();
+        }
+
         return DB::transaction(function () use ($data, $id) {
             if ($id) {
-                // Actualizar existente
                 $transaction = $this->findById($id);
 
                 if (!$transaction) {
@@ -27,7 +31,6 @@ class TransactionService
                 $transaction->update($data);
                 return $transaction;
             } else {
-                // Crear nuevo
                 return Transaction::create($data);
             }
         });

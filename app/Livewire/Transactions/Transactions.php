@@ -165,10 +165,12 @@ class Transactions extends Component
                 return;
             }
 
-            // Reset fields
+            $this->open = false;
+
             $this->resetFormFields();
 
-            // Success message
+            $this->dispatch('$refresh');
+
             $message = $isUpdate ? 'Transaction updated' : 'Transaction created';
             $this->dispatch('notify', message: $message, type: 'success');
 

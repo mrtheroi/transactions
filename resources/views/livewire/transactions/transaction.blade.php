@@ -37,9 +37,11 @@
                     <flux:icon name="x-circle" class="h-5 w-5" />
                 </button>
             </div>
-            <flux:button variant="primary" wire:click="create">
-                + Create a new transaction.
-            </flux:button>
+            <flux:modal.trigger wire:model="open" name="store-user">
+                <flux:button variant="primary">
+                    + Create a new transaction.
+                </flux:button>
+            </flux:modal.trigger>
         </div>
     </div>
 
@@ -140,16 +142,6 @@
                                             @endif
                                         </flux:button.group>
                                     </td>
-{{--                                    <td class="px-3 py-2 text-sm whitespace-nowrap text-gray-500">--}}
-{{--                                        <div class="flex space-x-2">--}}
-{{--                                            <button wire:click="edit({{ $transaction->id }})" class="text-blue-500 hover:text-blue-700">--}}
-{{--                                                <flux:icon name="pencil" class="h-4 w-4" />--}}
-{{--                                            </button>--}}
-{{--                                            <button wire:click="deleteConfirmation({{ $transaction->id }})" class="text-red-500 hover:text-red-700">--}}
-{{--                                                <flux:icon name="trash" class="h-4 w-4" />--}}
-{{--                                            </button>--}}
-{{--                                        </div>--}}
-{{--                                    </td>--}}
                                 </tr>
                             @endforeach
                             </tbody>
@@ -164,80 +156,11 @@
         </div>
     </div>
 
-    <!-- Modal para crear/editar transacciones -->
-{{--    <flux:modal wire:model="open">--}}
-{{--        <flux:slot name="title">--}}
-{{--            {{ $selected_id ? 'Edit Transaction' : 'Create Transaction' }}--}}
-{{--        </flux:slot>--}}
 
-{{--        <flux:slot name="content">--}}
-{{--            <form wire:submit.prevent="save">--}}
-{{--                <div class="space-y-4">--}}
-{{--                    <!-- User ID -->--}}
-{{--                    <div>--}}
-{{--                        <label for="user_id" class="block text-sm font-medium text-gray-700">User</label>--}}
-{{--                        <select id="user_id" wire:model="user_id" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">--}}
-{{--                            @if(Auth::user()->hasRole('Admin'))--}}
-{{--                                @foreach(\App\Models\User::all() as $user)--}}
-{{--                                    <option value="{{ $user->id }}">{{ $user->name }}</option>--}}
-{{--                                @endforeach--}}
-{{--                            @else--}}
-{{--                                <option value="{{ Auth::id() }}">{{ Auth::user()->name }}</option>--}}
-{{--                            @endif--}}
-{{--                        </select>--}}
-{{--                        @error('user_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror--}}
-{{--                    </div>--}}
-
-{{--                    <!-- Type -->--}}
-{{--                    <div>--}}
-{{--                        <label for="type" class="block text-sm font-medium text-gray-700">Type</label>--}}
-{{--                        <select id="type" wire:model="type" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">--}}
-{{--                            <option value="">Select type</option>--}}
-{{--                            <option value="credit">Credit</option>--}}
-{{--                            <option value="debit">Debit</option>--}}
-{{--                        </select>--}}
-{{--                        @error('type') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror--}}
-{{--                    </div>--}}
-
-{{--                    <!-- Amount -->--}}
-{{--                    <div>--}}
-{{--                        <label for="amount" class="block text-sm font-medium text-gray-700">Amount</label>--}}
-{{--                        <input type="number" step="0.01" id="amount" wire:model="amount" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">--}}
-{{--                        @error('amount') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror--}}
-{{--                    </div>--}}
-
-{{--                    <!-- Description -->--}}
-{{--                    <div>--}}
-{{--                        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>--}}
-{{--                        <textarea id="description" wire:model="description" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>--}}
-{{--                        @error('description') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror--}}
-{{--                    </div>--}}
-
-{{--                    <!-- Transaction Date -->--}}
-{{--                    <div>--}}
-{{--                        <label for="transaction_date" class="block text-sm font-medium text-gray-700">Transaction Date</label>--}}
-{{--                        <input type="date" id="transaction_date" wire:model="transaction_date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">--}}
-{{--                        @error('transaction_date') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror--}}
-{{--                    </div>--}}
-{{--                </div>--}}
-{{--            </form>--}}
-{{--        </flux:slot>--}}
-
-{{--        <flux:slot name="footer">--}}
-{{--            <div class="flex justify-end space-x-3">--}}
-{{--                <flux:button variant="secondary" wire:click="$set('open', false)">--}}
-{{--                    Cancel--}}
-{{--                </flux:button>--}}
-{{--                <flux:button variant="primary" wire:click="save">--}}
-{{--                    {{ $selected_id ? 'Update' : 'Create' }}--}}
-{{--                </flux:button>--}}
-{{--            </div>--}}
-{{--        </flux:slot>--}}
-{{--    </flux:modal>--}}
 
     <!-- Componente de notificación -->
 {{--    <livewire:components.notification />--}}
-
+    @include('livewire.modals.form-transaction')
     <!-- Modal de confirmación -->
     <livewire:modals.confirm-modal />
 

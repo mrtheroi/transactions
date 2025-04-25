@@ -2,144 +2,247 @@
 
 namespace App\Livewire\Users;
 
-use App\Livewire\Modals\ConfirmModal;
 use App\Models\User;
+use App\Services\UserService;
+use App\Traits\WithSorting; // Asegúrate de tener este trait
 use Illuminate\Support\Facades\Hash;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithoutUrlPagination;
 use Livewire\WithPagination;
-use Livewire\Attributes\On;
 use Spatie\Permission\Models\Role;
 
 class Users extends Component
 {
-    use WithPagination, WithoutUrlPagination;
+    use WithPagination, WithoutUrlPagination, WithSorting;
 
-    #[Validate('required|min:6')]
-    public $name;
-    #[Validate('required|email')]
-    public $email;
-    #[Validate('required|min:8')]
-    public $password;
+    /**
+     * Número de elementos por página
+     */
+    protected const PAGINATION_COUNT = 10;
 
-    ## no validate vars ##
-    public User $user;
+    /**
+     * Columnas permitidas para ordenar
+     */
+    protected $sortableColumns = [
+        'name' => 'name',
+        'email' => 'email',
+        'role' => 'roles.name',
+        'status' => 'deleted_at',
+    ];
+
+    /**
+     * Propiedades de validación
+     */
+    #[Validate('required|string|max:255')]
+    public $name = '';
+
+    #[Validate('required|email|unique:users,email')]
+    public $email = '';
+
+    #[Validate('required|min:8|confirmed')]
+    public $password = '';
+
+    public $password_confirmation = '';
+
+    #[Validate('nullable|exists:roles,id')]
+    public $role_id = null;
+
+    /**
+     * Propiedades para el filtrado
+     */
     public $search = '';
+
+    /**
+     * Estado del componente
+     */
     public $open = false;
+    public $selected_id = 0;
 
-    public $sortCol;
-    public $sortAsc = false;
+    /**
+     * Servicio de usuarios
+     */
+    protected UserService $userService;
 
-    public $user_id;
-    public $selected_id;
-
-    public function mount(): void
+    /**
+     * Constructor
+     */
+    public function boot(UserService $userService)
     {
-        $this->user = new User();
-        $this->selected_id = 0;
-        $this->show = false;
+        $this->userService = $userService;
     }
 
+    /**
+     * Inicializar el componente
+     */
+    public function mount(): void
+    {
+        $this->initSorting('name', true); // Ordenar por nombre ascendente por defecto
+    }
+
+    /**
+     * Resetea los campos del formulario
+     */
+    private function resetFormFields(): void
+    {
+        $this->reset(['name', 'email', 'password', 'password_confirmation', 'role_id', 'selected_id', 'open']);
+    }
+
+    /**
+     * Eventos de actualización
+     */
     public function updatedSearch(): void
     {
         $this->resetPage();
     }
 
-    protected function applySorting($query)
+    /**
+     * Prepara el modal para un nuevo usuario
+     */
+    public function create(): void
     {
-        if ($this->sortCol) {
-            $colum = match ($this->sortCol)
-            {
-                'name' => 'name',
-                'status' => 'deleted_at',
-            };
-            $query->orderBy($colum, $this->sortAsc ? 'asc' : 'desc');
-        }
-        return $query;
-    }
-
-    public function sortBy($colum)
-    {
-        if ($this->sortCol === $colum) {
-            $this->sortAsc = !$this->sortAsc;
-        } else {
-            $this->sortCol = $colum;
-            $this->sortAsc = false;
-        }
-
-    }
-
-    protected function applySearch($query)
-    {
-        return $this->search === ''
-            ? $query
-            : $query->where('name', 'like', "%{$this->search}%")
-                ->orWhere('email', 'like', "%{$this->search}%")
-                ->orWhere(function ($query) {
-                    if (stripos('Activo', $this->search) !== false) {
-                        $query->whereNull('deleted_at');
-                    } elseif (stripos('Inactivo', $this->search) !== false) {
-                        $query->whereNotNull('deleted_at');
-                    }
-                });
-    }
-
-
-    public function render()
-    {
-        $query = $this->user->withTrashed();
-        $query = $this->applySearch($query);
-        $query = $this->applySorting($query);
-        $users = $query->paginate(10);
-        $roles = Role::all();
-        return view('livewire.users.users', compact('users', 'roles'));
-    }
-
-    public function save()
-    {
-        $this->validate();
-        $user = User::create([
-            'name' => $this->name,
-            'email' => $this->email,
-            'password' => Hash::make($this->password),
-        ]);
-
-        $this->dispatch('notify', message: 'Usuario guardado con éxito', type: 'success');
-        $this->reset();
-    }
-
-    public function edit($id)
-    {
-        $user = User::find($id);
-        $this->name = $user->name;
-        $this->email = $user->email;
-        $this->password = $user->password;
-        $this->selected_id = $user->id;
+        $this->resetFormFields();
+        $this->resetValidation();
         $this->open = true;
     }
 
-    public function update()
+    /**
+     * Prepara los campos para editar
+     */
+    public function edit(int $id): void
     {
-        $this->validate();
+        $user = $this->userService->findById($id);
 
-        User::find($this->selected_id)->update([
-            'name' => $this->name,
-            'password' => $this->password ? Hash::make($this->password) : null,
-        ]);
+        if (!$user) {
+            $this->dispatch('notify', message: 'User not found', type: 'error');
+            return;
+        }
 
-        $this->reset();
-        $this->dispatch('notify', message: 'Usuario modificado con éxito', type: 'success');
+        $this->selected_id = $user->id;
+        $this->name = $user->name;
+        $this->email = $user->email;
+        $this->password = '';
+        $this->password_confirmation = '';
+        $this->role_id = $user->roles->first()->id ?? null;
+
+        $this->resetValidation();
+        $this->open = true;
     }
-    public function deleteConfimation($id)
+
+    /**
+     * Guarda o actualiza un usuario
+     */
+    public function save(): void
     {
-        $this->dispatch('showConfirmationModal', userId: $id)->to(ConfirmModal::class);
+        // Modificar las reglas de validación para el email en caso de actualización
+        if ($this->selected_id) {
+            $this->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email,'.$this->selected_id,
+                'password' => $this->password ? 'min:8|confirmed' : '',
+                'role_id' => 'nullable|exists:roles,id',
+            ]);
+        } else {
+            $this->validate();
+        }
+
+        try {
+            $isUpdate = $this->selected_id > 0;
+
+            $data = [
+                'name' => $this->name,
+                'email' => $this->email,
+            ];
+
+            // Solo incluir password si se proporcionó uno nuevo
+            if ($this->password) {
+                $data['password'] = Hash::make($this->password);
+            }
+
+            $user = $this->userService->save($data, $this->selected_id);
+
+            if (!$user) {
+                $this->dispatch('notify', message: 'Error processing user', type: 'error');
+                return;
+            }
+
+            // Asignar rol si se seleccionó uno
+            if ($this->role_id) {
+                $this->userService->assignRole($user, $this->role_id);
+            }
+
+            // Cerrar el modal primero
+            $this->open = false;
+
+            // Resetear los campos del formulario
+            $this->resetFormFields();
+
+            // Forzar una actualización de la tabla
+            $this->dispatch('$refresh');
+
+            // Mensaje de éxito después del refresh
+            $message = $isUpdate ? 'User updated successfully' : 'User created successfully';
+            $this->dispatch('notify', message: $message, type: 'success');
+
+        } catch (\Exception $e) {
+            logger()->error('Error saving user: ' . $e->getMessage());
+            $this->dispatch('notify', message: 'Error saving user', type: 'error');
+        }
     }
 
+    /**
+     * Envía confirmación para eliminar
+     */
+    public function deleteConfirmation(int $id): void
+    {
+        $this->dispatch('showConfirmationModal', userId: $id)->to('livewire.modals.confirm-modal');
+    }
+
+    /**
+     * Elimina un usuario
+     */
     #[On('deleteConfirmed')]
-    public function destroy($id)
+    public function destroy(int $id): void
     {
-        $user = User::where('id', $id)->first();
-        $user->delete();
+        try {
+            $success = $this->userService->destroy($id);
+
+            if (!$success) {
+                $this->dispatch('notify', message: 'User not found', type: 'error');
+                return;
+            }
+
+            // Forzar actualización de la tabla
+            $this->dispatch('$refresh');
+
+            // Notificación de éxito
+            $this->dispatch('notify', message: 'User deleted successfully', type: 'success');
+        } catch (\Exception $e) {
+            logger()->error('Error deleting user: ' . $e->getMessage());
+            $this->dispatch('notify', message: 'Error deleting user', type: 'error');
+        }
+    }
+
+    /**
+     * Renderizar la vista
+     */
+    public function render()
+    {
+        $users = $this->userService->getFilteredUsers(
+            $this->search,
+            $this->sortColumn,
+            $this->sortDirection,
+            true, // incluir usuarios eliminados
+            self::PAGINATION_COUNT,
+            $this->sortableColumns
+        );
+
+        $roles = Role::all();
+
+        return view('livewire.users.users', [
+            'users' => $users,
+            'roles' => $roles,
+        ]);
     }
 }

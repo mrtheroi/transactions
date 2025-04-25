@@ -10,10 +10,15 @@ class Transaction extends Model
 {
     use HasFactory, SoftDeletes;
     protected $fillable = [
+        'user_id',
         'type',
         'amount',
         'description',
         'transaction_date',
+    ];
+
+    protected $casts = [
+        'transaction_date' => 'datetime',
     ];
 
     public function user()

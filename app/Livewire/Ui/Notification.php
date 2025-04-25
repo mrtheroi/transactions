@@ -8,7 +8,7 @@ use Livewire\Component;
 class Notification extends Component
 {
     public bool $visible = false;
-    public string $message = '';  // Asegúrate de que esta propiedad esté definida
+    public string $message = '';
     public string $type = 'success'; // success, error, warning, info
     public ?string $title = null;
     public bool $autoClose = true;
@@ -28,6 +28,19 @@ class Notification extends Component
         $this->autoClose = $autoClose;
         $this->duration = $duration;
         $this->visible = true;
+
+        // Esto garantiza que la notificación no interferirá con otros componentes
+        if ($autoClose) {
+            $this->dispatch('closeNotification')->self();
+        }
+    }
+
+    #[On('closeNotification')]
+    public function closeNotification()
+    {
+        // Usando un ligero retraso para asegurar que no interfiera con otras actualizaciones
+        sleep(0.1); // Un pequeño retraso de 100ms
+        $this->visible = false;
     }
 
     public function render()
