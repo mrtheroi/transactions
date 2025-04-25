@@ -9,7 +9,7 @@ class Notification extends Component
 {
     public bool $visible = false;
     public string $message = '';
-    public string $type = 'success'; // success, error, warning, info
+    public string $type = 'success';
     public ?string $title = null;
     public bool $autoClose = true;
     public int $duration = 3000;
@@ -29,7 +29,6 @@ class Notification extends Component
         $this->duration = $duration;
         $this->visible = true;
 
-        // Esto garantiza que la notificación no interferirá con otros componentes
         if ($autoClose) {
             $this->dispatch('closeNotification')->self();
         }
@@ -38,8 +37,7 @@ class Notification extends Component
     #[On('closeNotification')]
     public function closeNotification()
     {
-        // Usando un ligero retraso para asegurar que no interfiera con otras actualizaciones
-        sleep(0.1); // Un pequeño retraso de 100ms
+        sleep(0.1);
         $this->visible = false;
     }
 

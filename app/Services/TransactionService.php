@@ -16,7 +16,6 @@ class TransactionService
     public function save(array $data, ?int $id = null): ?Transaction
     {
         if (isset($data['transaction_date'])) {
-            // Asegurarnos de que sea el inicio del día para ignorar la parte de la hora
             $data['transaction_date'] = Carbon::parse($data['transaction_date'])->startOfDay();
         }
 
@@ -71,12 +70,10 @@ class TransactionService
             return false;
         }
 
-        // El administrador puede gestionar cualquier transacción
         if (Auth::user()->hasRole('Admin')) {
             return true;
         }
 
-        // El usuario solo puede gestionar sus propias transacciones
         return $transaction->user_id === Auth::id();
     }
 

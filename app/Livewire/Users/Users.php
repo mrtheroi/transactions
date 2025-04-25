@@ -135,7 +135,6 @@ class Users extends Component
      */
     public function save(): void
     {
-        // Modificar las reglas de validación para el email en caso de actualización
         if ($this->selected_id) {
             $this->validate([
                 'name' => 'required|string|max:255',
@@ -155,7 +154,6 @@ class Users extends Component
                 'email' => $this->email,
             ];
 
-            // Solo incluir password si se proporcionó uno nuevo
             if ($this->password) {
                 $data['password'] = Hash::make($this->password);
             }
@@ -167,21 +165,16 @@ class Users extends Component
                 return;
             }
 
-            // Asignar rol si se seleccionó uno
             if ($this->role_id) {
                 $this->userService->assignRole($user, $this->role_id);
             }
 
-            // Cerrar el modal primero
             $this->open = false;
 
-            // Resetear los campos del formulario
             $this->resetFormFields();
 
-            // Forzar una actualización de la tabla
             $this->dispatch('$refresh');
 
-            // Mensaje de éxito después del refresh
             $message = $isUpdate ? 'User updated successfully' : 'User created successfully';
             $this->dispatch('notify', message: $message, type: 'success');
 
@@ -213,10 +206,8 @@ class Users extends Component
                 return;
             }
 
-            // Forzar actualización de la tabla
             $this->dispatch('$refresh');
 
-            // Notificación de éxito
             $this->dispatch('notify', message: 'User deleted successfully', type: 'success');
         } catch (\Exception $e) {
             logger()->error('Error deleting user: ' . $e->getMessage());
@@ -233,7 +224,7 @@ class Users extends Component
             $this->search,
             $this->sortColumn,
             $this->sortDirection,
-            true, // incluir usuarios eliminados
+            true,
             self::PAGINATION_COUNT,
             $this->sortableColumns
         );

@@ -45,7 +45,6 @@ trait WithSorting
 
         $column = $this->sortableColumns[$this->sortColumn];
 
-        // Si estamos ordenando por rol, necesitamos hacer un join con la tabla roles
         if ($this->sortColumn === 'role') {
             $query->select('users.*')
                 ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
@@ -56,17 +55,14 @@ trait WithSorting
             return $query;
         }
 
-        // Si estamos ordenando por estatus, ordenamos por deleted_at
         if ($this->sortColumn === 'status') {
-            // Si deleted_at es NULL, el usuario está activo
-            // Para ordenar correctamente por estatus, usamos CASE WHEN
+
             $direction = $this->sortDirection === 'asc' ? 'asc' : 'desc';
             $query->orderByRaw("CASE WHEN deleted_at IS NULL THEN 0 ELSE 1 END {$direction}");
 
             return $query;
         }
 
-        // Para otras columnas, ordenamiento normal
         return $query->orderBy($column, $this->sortDirection);
     }
 }

@@ -16,7 +16,6 @@ class UserService
     {
         return DB::transaction(function () use ($data, $id) {
             if ($id) {
-                // Actualizar existente
                 $user = $this->findById($id);
 
                 if (!$user) {
@@ -26,7 +25,6 @@ class UserService
                 $user->update($data);
                 return $user;
             } else {
-                // Crear nuevo
                 return User::create($data);
             }
         });
@@ -41,9 +39,7 @@ class UserService
 
         if ($role) {
             DB::transaction(function () use ($user, $role) {
-                // Eliminar roles existentes
                 $user->syncRoles([]);
-                // Asignar nuevo rol
                 $user->assignRole($role);
             });
         }
@@ -61,7 +57,6 @@ class UserService
                 return false;
             }
 
-            // Si usas SoftDeletes
             return $user->delete();
         });
     }
@@ -105,11 +100,11 @@ class UserService
             });
         }
 
-        // Aplicar ordenamiento especializado
+
         if ($sortColumn && isset($sortableColumns[$sortColumn])) {
             $column = $sortableColumns[$sortColumn];
 
-            // Si estamos ordenando por rol, necesitamos hacer un join con la tabla roles
+
             if ($sortColumn === 'role') {
                 $query->select('users.*')
                     ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
@@ -117,19 +112,17 @@ class UserService
                     ->where('model_has_roles.model_type', '=', User::class)
                     ->orderBy('roles.name', $sortDirection);
             }
-            // Si estamos ordenando por estatus, ordenamos por deleted_at
+
             else if ($sortColumn === 'status') {
-                // Si deleted_at es NULL, el usuario está activo
                 $direction = $sortDirection === 'asc' ? 'asc' : 'desc';
                 $query->orderByRaw("CASE WHEN deleted_at IS NULL THEN 0 ELSE 1 END {$direction}");
             }
-            // Para otras columnas, ordenamiento normal
+
             else {
                 $query->orderBy($column, $sortDirection);
             }
         }
 
-        // Paginar resultados
         return $query->paginate($perPage);
     }
 }

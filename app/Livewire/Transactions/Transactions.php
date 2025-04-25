@@ -144,7 +144,6 @@ class Transactions extends Component
         try {
             $isUpdate = $this->selected_id > 0;
 
-            // Verificar permisos si es actualización
             if ($isUpdate && !$this->transactionService->canManage($this->selected_id)) {
                 $this->dispatch('notify', message: 'You do not have permission to update this transaction', type: 'error');
                 return;
